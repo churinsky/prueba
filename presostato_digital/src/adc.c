@@ -11,6 +11,6 @@ uint16_t adc_read(uint8_t canal)
     ADMUX=(ADMUX&0xF8)|canal;// conservo la configuracion de admux y agrego el canal a utilizar
     ADCSRA|=(1<<ADSC);// se activa el bit para iniciar la converison
     while (ADCSRA&(1<<ADSC));// se espera hasta que el bit se ponga en cero para terminar la conversion
-    return(ADCL|(ADCH<<8));//resultado
+    return ADC;//resultado
  
 }

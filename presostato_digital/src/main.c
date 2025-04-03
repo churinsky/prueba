@@ -1,6 +1,7 @@
 #include "adc.h"
 #include "relay.h"
 #include "nivel.h"
+#include "timer.h"
 #include <avr/io.h>
 #include <util/delay.h>
 // me falta hacer la recalibracion automatica
