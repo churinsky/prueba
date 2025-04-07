@@ -1,0 +1,48 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../../klinkoexpress"
+		},
+		{
+			"name": "lavadora_3.0",
+			"path": "../../lavadora_3.0"
+		},
+		{
+			"name": "wifi_bridge",
+			"path": "../../wifi_bridge"
+		},
+		{
+			"name": "esp_8266_magstripe",
+			"path": ".."
+		},
+		{
+			"name": "pruebas",
+			"path": "../../../../../../PlatformIO/Projects/pruebas"
+		},
+		{
+			"name": "bdrige",
+			"path": "../../bdrige"
+		},
+		{
+			"name": "BILLETERO_KIOSKO",
+			"path": "../../BILLETERO_KIOSKO"
+		},
+		{
+			"name": "coin",
+			"path": "../../coin"
+		},
+		{
+			"name": "cambiador_dual",
+			"path": "../../cambiador_dual"
+		},
+		{
+			"name": "monedas_lavadora_Semiindustrial",
+			"path": "../../monedas_lavadora_Semiindustrial"
+		},
+		{
+			"name": "secadora_monedas_single_poket",
+			"path": "../../secadora_monedas_single_poket"
+		}
+	],
+	"settings": {}
+}

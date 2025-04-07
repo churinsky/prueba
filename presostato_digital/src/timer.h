@@ -2,12 +2,7 @@
 #define TIMER_H
 #include <avr/io.h>
 
-typedef struct
-{
-    volatile uint32_t contador_milli;
-} Timer;
-
-void timer_init(Timer *t);
+void timer_init(void);
 uint32_t millis(void);
 
 #endif

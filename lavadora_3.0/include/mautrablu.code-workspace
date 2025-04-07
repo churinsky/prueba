@@ -1,0 +1,44 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "bridge_v2",
+			"path": "../../../../../../PlatformIO/Projects/bridge_v2"
+		},
+		{
+			"name": "esp_8266_magstripe",
+			"path": "../../esp_8266_magstripe"
+		},
+		{
+			"name": "bluetooth",
+			"path": "../../bluetooth"
+		},
+		{
+			"name": "bdrige",
+			"path": "../../bdrige"
+		},
+		{
+			"name": "BILLETERO_KIOSKO",
+			"path": "../../BILLETERO_KIOSKO"
+		},
+		{
+			"name": "cambiador_dual",
+			"path": "../../cambiador_dual"
+		},
+		{
+			"name": "wifi_bridge",
+			"path": "../../wifi_bridge"
+		},
+		{
+			"name": "bridge_main_directo",
+			"path": "../../bridge_main_directo"
+		},
+		{
+			"name": "coin",
+			"path": "../../coin"
+		}
+	],
+	"settings": {}
+}
