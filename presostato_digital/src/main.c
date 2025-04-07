@@ -3,7 +3,7 @@
 #include "nivel.h"
 #include <avr/io.h>
 #include <util/delay.h>
-
+#include "uart.h"
 // me falta hacer la recalibracion automatica
 
 #define alpha 0.1                    // para el filtro recomendado para el presostato
@@ -23,9 +23,9 @@ enum nivel
 float voltajeFiltrado = 0.0;
 float presionAtmosferica = 0.0;
 float voltageSum = 0.0;
-uint8_t umbral_de_activacion = 0; // nivel al cual el presostato activa el rele
-uint8_t t_reset = 0;               //reset del nivel de agua
-enum nivel nivel_actual = 0;        // seleccion de nivel
+uint8_t umbral_de_activacion = 0;                                        // nivel al cual el presostato activa el rele
+uint8_t t_reset = 0;                                                     // reset del nivel de agua
+enum nivel nivel_actual = 0;                                             // seleccion de nivel
 Relay rele = {.ddr = &DDRD, .port = &PORTD, .pin = PD5};                 // cosas del relay
 Nivel nl = {.ddr = &DDRB, .port = &PORTB, .pin_reg = &PINB, .pin = PB1}; // cosas para el nivel seleccionar un nivel que viene del display aun no hay nada
 
@@ -35,7 +35,7 @@ int main(void)
     relay_init(&rele);
     nivel_init(&nl);
     adc_init(); // Avref, prescales 111
-    timer_init();
+    uart_init(9600);
     // inicializacion del voltaje de filtrado pal filtro
     for (int i = 0; i < 20; i++)
     {
@@ -48,6 +48,9 @@ int main(void)
 
     while (1)
     {
+        //prueba de la funcion uart string
+       // uart_send_string("PRUEBA\r\n");
+     
         // filtro recomendado para el presostato media movil ponderada
         int lectura_n = adc_read(5) * (5.0 / 1023.0);
         voltajeFiltrado = (alpha * lectura_n) + ((1 - alpha) * voltajeFiltrado);
