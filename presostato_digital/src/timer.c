@@ -4,7 +4,6 @@ static volatile uint32_t contador_ms = 0;
 
 void timer_init(void)
 {
-
     TCCR0A = (1 << WGM01);              // para que se configure modod ctc 0b010
     TCCR0B = (1 << CS01) | (1 << CS00); // prescalar /64
     OCR0A = 249;                        // hasta donde quiero que cuente

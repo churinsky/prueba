@@ -321,7 +321,7 @@ void parametros()
 #define DEPOSITO3 24
 #define BUTT_TOP 30 // button top-------------FALTA DEFINIRLOS
 #define BUTT_BOT A2 // button bottom------------- FALTA DEFINIRLOS
-
+#define BUTT_nivel 11 // button bottom------------- FALTA DEFINIRLOS
 #if serial == 1
 #define PUERTA_ON_110 50  // MISO
 #define PUERTA_OFF_110 51 // MOSI

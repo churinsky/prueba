@@ -12,7 +12,7 @@
 #define puerta 85 // primer vesion 38,nueva 85
 
 #define eeprom 1// actualizar parametros  1 para que queden bloqueados 0
-#define opl 1    // 0 opl, para quitar el opl 1
+#define opl 0    // 0 opl, para quitar el opl 1
 #define ciclo 0  // ciclo largo-corto, 1 tiempo fijo
 //////////////////////////////////////
 int _datoAnterior22 = 0;
@@ -97,6 +97,7 @@ Boton b1(23, 27);
 Boton b2(24, 25);
 Boton b3(26, 22);
 int Vo;
+
 ///////////////TIMEER
 int TIEMPO1 = tiempo_secado + tiempo_cd;
 int segundostotal = TIEMPO1 * 60;

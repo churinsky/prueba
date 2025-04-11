@@ -5,14 +5,13 @@
 #include <util/delay.h>
 #include "uart.h"
 // me falta hacer la recalibracion automatica
-
 #define alpha 0.1                    // para el filtro recomendado para el presostato
 #define nivel_vacio_cm 1.0           // nivel de vacio
 #define tiempo_de_recalibracion 1000 // tiempo en vacio para recalibrar lo voy a usar apra calcular el vacio
 #define voltaje_offset 0.2           // ofset mpx5010
 #define sensibilidad 0.45            // 450mV/kpa
 #define cm_a_kpas 10.2
-//
+// niveles de agua
 enum nivel
 {
     bajo,
@@ -28,14 +27,13 @@ uint8_t t_reset = 0;                                                     // rese
 enum nivel nivel_actual = 0;                                             // seleccion de nivel
 Relay rele = {.ddr = &DDRD, .port = &PORTD, .pin = PD5};                 // cosas del relay
 Nivel nl = {.ddr = &DDRB, .port = &PORTB, .pin_reg = &PINB, .pin = PB1}; // cosas para el nivel seleccionar un nivel que viene del display aun no hay nada
-
 int main(void)
 {
     // incializaciones de rele y lo del nivel
     relay_init(&rele);
     nivel_init(&nl);
     adc_init(); // Avref, prescales 111
-    uart_init(9600);
+                // uart_init(9600);
     // inicializacion del voltaje de filtrado pal filtro
     for (int i = 0; i < 20; i++)
     {
@@ -45,16 +43,13 @@ int main(void)
     }
     voltajeFiltrado = voltageSum / 20;
     presionAtmosferica = (voltajeFiltrado - voltaje_offset) / sensibilidad;
-
     while (1)
     {
-        //prueba de la funcion uart string
-       // uart_send_string("PRUEBA\r\n");
-     
+        // prueba de la funcion uart string
+        // uart_send_string("PRUEBA\r\n");
         // filtro recomendado para el presostato media movil ponderada
         int lectura_n = adc_read(5) * (5.0 / 1023.0);
         voltajeFiltrado = (alpha * lectura_n) + ((1 - alpha) * voltajeFiltrado);
-
         // conversion kpascales
         float presion_kpa = (voltajeFiltrado - voltaje_offset) / sensibilidad;
         float presionRel = presion_kpa - presionAtmosferica;
@@ -62,7 +57,6 @@ int main(void)
             presionRel = 0;
         // control del nivel del presostato a la tarjeta de laavadora mautra
         float nivel_cm = presionRel * cm_a_kpas;
-
         if (nivel_select(&nl))
         {
             t_reset++;
@@ -70,12 +64,11 @@ int main(void)
             if (nivel_actual > 2)
                 nivel_actual = 2;
         }
-
         if (t_reset >= 4)
         {
             nivel_actual = 0;
+            t_reset = 0;
         }
-
         switch (nivel_actual)
         {
         case bajo:
@@ -91,7 +84,6 @@ int main(void)
             umbral_de_activacion = 20;
             break;
         }
-
         if (nivel_cm > umbral_de_activacion)
         {
             relay_on(&rele);
