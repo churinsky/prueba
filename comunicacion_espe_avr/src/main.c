@@ -4,7 +4,7 @@
 // estado de maquina 
 EstadoCiclo maquina =
     {
-        .tipo_msg = 2,
+        .tipo_msg = 3,
         .id = 10,
         .etapa = 1,
         .paso = 2,
