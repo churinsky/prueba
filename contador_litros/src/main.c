@@ -1,22 +1,30 @@
 #include <avr/interrupt.h>
-#include "hal_timer0.h"
+#include "fsm.h"
+#include "hal_uart.h"
 #include "hal_gpio.h"
+
+/* K por defecto (si EEPROM vacía). Partimos de ~450 pulsos/L típico YF-B6. */
+#ifndef K_FRIA_DEF
+#define K_FRIA_DEF (450.0f)
+#endif
+#ifndef K_CAL_DEF
+#define K_CAL_DEF  (450.0f)
+#endif
 
 int main(void)
 {
-    HAL_GPIO_Init();
-    HAL_Timer0_Init();
-    sei();                     /* habilita interrupciones globales */
+    Fsm fsm;
+    FSM_Init(&fsm, K_FRIA_DEF, K_CAL_DEF);
 
-    uint32_t t0 = 0;
-    uint8_t led = 0;
+    /* Señal de arranque por UART (opcional) */
+    HAL_GPIO_UartBufEnable(true);
+    HAL_UART_TxStr("Medidor Agua - Init\r\n");
+    HAL_GPIO_UartBufEnable(false);
+
+    sei(); /* habilita interrupciones globales después de inicializar HALs */
 
     for (;;) {
-        uint32_t now = HAL_Millis();
-        if ((now - t0) >= 1000u) {   /* manejo de overflow seguro con unsigned */
-            t0 = now;
-            led ^= 1u;
-            HAL_GPIO_SetLedProg(led != 0u);
-        }
+        FSM_Tick(&fsm);
+        /* Aquí podríamos dormir entre ticks para ahorrar (si se habilita sleep). */
     }
 }
