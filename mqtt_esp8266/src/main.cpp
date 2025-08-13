@@ -13,18 +13,20 @@ unsigned long lastReconnectAttempt = 0;
 const unsigned long tiempoParaReset = 30000;
 unsigned long tiempoUltimoCheck = 0; 
 ///////////////////////////////////////////////////////////////
-#define modelo 1  // 1 mautra 0 bridge
+#define modelo 0  // 1 mautra 0 bridge
 #define tipo 1    // 0 si es activacion doble con un bridge 1 normal
-#define maquina 0 // 0 lavadora, 1 secadora
+#define maquina 1 // 0 lavadora, 1 secadora
 ////timer reset
+
+
 
 int push = 0;
 // Reemplaza con la información de tu servidor MQTT 9 //
 const char *mqtt_server = "192.168.0.200"; //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>22 23 24 25
 const int mqtt_port = 1883;
-const char *mqtt_topic = "use/6";        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-const char *mqtt_publish_message = "m6"; //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-String id_maquina = "6";
+const char *mqtt_topic = "use/5";       //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+const char *mqtt_publish_message = "m5";//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+String id_maquina = "5";
 ///  ////////////////////////////////////////
 #if tipo == 0
 const char *mqtt_topic_2 = "use/10";

@@ -16,19 +16,19 @@ int _tiempo_giro_derecha_1;
 int _tiempo_reposo_1;
 void paramreos_eeprom()
 {
-    EEPROM.update(1, 9); // secado tiempo_1
+    EEPROM.update(1, 34); // secado tiempo_1
     EEPROM.update(2, 1);  // cooldown
     EEPROM.update(3, 0);  // precio t1
     EEPROM.update(4, 40); // temp baja
     EEPROM.update(5, 55); // temp alta
 
-    EEPROM.update(6, 9);  // secado tiempo_1
+    EEPROM.update(6, 34);  // secado tiempo_1
     EEPROM.update(7, 1);   // cooldown
     EEPROM.update(8, 0);   // precio t1
     EEPROM.update(9, 55);  // temp baja
     EEPROM.update(10, 65); // temp alta
 
-    EEPROM.update(11, 9); // secado tiempo_2
+    EEPROM.update(11, 34     ); // secado tiempo_2
     EEPROM.update(12, 1);  // cooldown
     EEPROM.update(13, 0);  // precio t1
     EEPROM.update(14, 65); // temp baja

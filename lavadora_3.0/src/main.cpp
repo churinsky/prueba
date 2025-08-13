@@ -67,7 +67,7 @@ String combinedString;
 // actualizar para el pay
 /////////////////////
 #define eprom 0// actualizar parametros 1 ,, para bloquearlos 0///////////////////////
-#define opl 0  // para quitar comunicacion y jale opl, 0 ,1 para activar comunicacion y 2 para  2 lo del instalador
+#define opl 0// para quitar comunicacion y jale opl, 0 ,1 para activar comunicacion y 2 para  2 lo del instalador
 // actualizar parametros  1 para que queden bloqueados 0
 ////////////
 

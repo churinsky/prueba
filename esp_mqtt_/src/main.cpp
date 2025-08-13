@@ -10,12 +10,11 @@ void setup() {
     Serial.begin(115200);
 
     //modo de operacion
-    ModoOperacion modo = detectarModo(VAL_TIPO_MAQUINA, VAL_MODELO_MAQUINA, VAL_TIPO_ACTIVACION);
+    ModoOperacion modo = detectarModo(VAL_TIPO_MAQUINA, VAL_MODELO_MAQUINA, 1);
 
     // estructura de config
     static HardwareConfig hw = {
         .id_maquina     = 5,
-        .id_maquina_1   = 10,
         .wifi_ssid      = "Maquinas1",
         .wifi_pass      = "Lavan.2022",
         .mqtt_broker    = "192.168.0.200",

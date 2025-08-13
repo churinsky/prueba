@@ -11,9 +11,9 @@
 #define moneda_ 12
 #define puerta 85 // primer vesion 38,nueva 85
 
-#define eeprom 1// actualizar parametros  1 para que queden bloqueados 0
+#define eeprom 0// actualizar parametros  1 para que queden bloqueados 0
 #define opl 0    // 0 opl, para quitar el opl 1
-#define ciclo 0  // ciclo largo-corto, 1 tiempo fijo
+#define ciclo 1  // ciclo largo-corto, 1 tiempo fijo
 //////////////////////////////////////
 int _datoAnterior22 = 0;
 //////////////////////////////////////
