@@ -66,8 +66,8 @@ String combinedString;
 /////////////////////
 // actualizar para el pay
 /////////////////////
-#define eprom 0// actualizar parametros 1 ,, para bloquearlos 0///////////////////////
-#define opl 0// para quitar comunicacion y jale opl, 0 ,1 para activar comunicacion y 2 para  2 lo del instalador
+#define eprom 0 // actualizar parametros 1 ,, para bloquearlos 0///////////////////////
+#define opl 0   // para quitar comunicacion y jale opl, 0 ,1 para activar comunicacion y 2 para  2 lo del instalador
 // actualizar parametros  1 para que queden bloqueados 0
 ////////////
 
@@ -319,8 +319,8 @@ void parametros()
 #define TAMBOR_DEPOSITO1_CALIENTE 44
 #define DEPOSITO2 23
 #define DEPOSITO3 24
-#define BUTT_TOP 30 // button top-------------FALTA DEFINIRLOS
-#define BUTT_BOT A2 // button bottom------------- FALTA DEFINIRLOS
+#define BUTT_TOP 30   // button top-------------FALTA DEFINIRLOS
+#define BUTT_BOT A2   // button bottom------------- FALTA DEFINIRLOS
 #define BUTT_nivel 11 // button bottom------------- FALTA DEFINIRLOS
 #if serial == 1
 #define PUERTA_ON_110 50  // MISO
@@ -411,11 +411,543 @@ Lavado lavado(PRESOSTATO, MOTOR_BAJA, SECUENCIA, MOTOR_ALTA, PUERTA, DESAGUE, TA
 //////////////////////////////////////////////
 
 //////////////////////////////////le movi aqui para etna
+// ========================= Helpers locales (mismo archivo) =========================
+
+// -- 1) Selección de válvulas según ETAPA y temperatura (cuando “falta” nivel)
+static inline void seleccionar_valvulas_por_etapa_temp(int etapa, int temperatura)
+{
+  if (etapa == 6)
+  { // Enjuague final en cualquier temperatura
+    lavado.enjuague_final();
+    return;
+  }
+  switch (temperatura)
+  {
+  case 0:
+    lavado.agua_fria();
+    break;
+  case 1:
+    lavado.agua_tibia();
+    break;
+  case 2:
+    lavado.agua_caliente();
+    break;
+  default:
+    lavado.val_off();
+    break;
+  }
+}
+
+// -- 2) Apagar todas las válvulas
+static inline void valvulas_off(void)
+{
+  lavado.val_off();
+}
+
+// -- 3) Aplica o apaga válvulas según si todavía falta nivel
+static inline void manejar_valvulas(int nivel_objetivo, int nivel_actual, int etapa, int temperatura)
+{
+  if (nivel_objetivo > nivel_actual)
+  {
+    dosificador = 1; // mismo side-effect que el código original
+    seleccionar_valvulas_por_etapa_temp(etapa, temperatura);
+  }
+  else
+  {
+    valvulas_off();
+  }
+}
+
+// -- 4) Dosificación por etapa (replica exactamente la secuencia 1→4 con A12..A9)
+static inline void dosificadores_off(void)
+{
+  digitalWrite(A12, LOW);
+  digitalWrite(A11, LOW);
+  digitalWrite(A10, LOW);
+  digitalWrite(A9, LOW);
+}
+
+static inline void aplicar_dosificador(uint8_t n)
+{
+  digitalWrite(A12, (n == 1) ? HIGH : LOW);
+  digitalWrite(A11, (n == 2) ? HIGH : LOW);
+  digitalWrite(A10, (n == 3) ? HIGH : LOW);
+  digitalWrite(A9, (n == 4) ? HIGH : LOW);
+}
+
+// Devuelve true si todavía seguimos dosificando (dentro de tiempo) o false si ya terminó el bloque 1..4
+static bool correr_dosificacion_por_etapa(int ETAPA_local, uint32_t *pCont)
+{
+  // Mapeo 1:1 con tus variables de tiempo por etapa (mantén los mismos nombres globales)
+  switch (ETAPA_local)
+  {
+  case 1:
+    if (dosificador == 1 && *pCont <= (uint32_t)tiempo_dosificador1_ETAPA1)
+    {
+      aplicar_dosificador(1);
+      return true;
+    }
+    if (dosificador <= 1)
+    {
+      dosificador = 2;
+      *pCont = 0;
+    }
+    if (dosificador == 2 && *pCont <= (uint32_t)tiempo_dosificador2_ETAPA1)
+    {
+      aplicar_dosificador(2);
+      return true;
+    }
+    if (dosificador <= 2)
+    {
+      dosificador = 3;
+      *pCont = 0;
+    }
+    if (dosificador == 3 && *pCont <= (uint32_t)tiempo_dosificador3_ETAPA1)
+    {
+      aplicar_dosificador(3);
+      return true;
+    }
+    if (dosificador <= 3)
+    {
+      dosificador = 4;
+      *pCont = 0;
+    }
+    if (dosificador == 4 && *pCont <= (uint32_t)tiempo_dosificador4_ETAPA1)
+    {
+      aplicar_dosificador(4);
+      return true;
+    }
+    break;
+
+  case 2:
+    if (dosificador == 1 && *pCont <= (uint32_t)tiempo_dosificador1_ETAPA2)
+    {
+      aplicar_dosificador(1);
+      return true;
+    }
+    if (dosificador <= 1)
+    {
+      dosificador = 2;
+      *pCont = 0;
+    }
+    if (dosificador == 2 && *pCont <= (uint32_t)tiempo_dosificador2_ETAPA2)
+    {
+      aplicar_dosificador(2);
+      return true;
+    }
+    if (dosificador <= 2)
+    {
+      dosificador = 3;
+      *pCont = 0;
+    }
+    if (dosificador == 3 && *pCont <= (uint32_t)tiempo_dosificador3_ETAPA2)
+    {
+      aplicar_dosificador(3);
+      return true;
+    }
+    if (dosificador <= 3)
+    {
+      dosificador = 4;
+      *pCont = 0;
+    }
+    if (dosificador == 4 && *pCont <= (uint32_t)tiempo_dosificador4_ETAPA2)
+    {
+      aplicar_dosificador(4);
+      return true;
+    }
+    break;
+
+  case 3:
+    if (dosificador == 1 && *pCont <= (uint32_t)tiempo_dosificador1_ETAPA3)
+    {
+      aplicar_dosificador(1);
+      return true;
+    }
+    if (dosificador <= 1)
+    {
+      dosificador = 2;
+      *pCont = 0;
+    }
+    if (dosificador == 2 && *pCont <= (uint32_t)tiempo_dosificador2_ETAPA3)
+    {
+      aplicar_dosificador(2);
+      return true;
+    }
+    if (dosificador <= 2)
+    {
+      dosificador = 3;
+      *pCont = 0;
+    }
+    if (dosificador == 3 && *pCont <= (uint32_t)tiempo_dosificador3_ETAPA3)
+    {
+      aplicar_dosificador(3);
+      return true;
+    }
+    if (dosificador <= 3)
+    {
+      dosificador = 4;
+      *pCont = 0;
+    }
+    if (dosificador == 4 && *pCont <= (uint32_t)tiempo_dosificador4_ETAPA3)
+    {
+      aplicar_dosificador(4);
+      return true;
+    }
+    break;
+
+  case 4:
+    if (dosificador == 1 && *pCont <= (uint32_t)tiempo_dosificador1_ETAPA4)
+    {
+      aplicar_dosificador(1);
+      return true;
+    }
+    if (dosificador <= 1)
+    {
+      dosificador = 2;
+      *pCont = 0;
+    }
+    if (dosificador == 2 && *pCont <= (uint32_t)tiempo_dosificador2_ETAPA4)
+    {
+      aplicar_dosificador(2);
+      return true;
+    }
+    if (dosificador <= 2)
+    {
+      dosificador = 3;
+      *pCont = 0;
+    }
+    if (dosificador == 3 && *pCont <= (uint32_t)tiempo_dosificador3_ETAPA4)
+    {
+      aplicar_dosificador(3);
+      return true;
+    }
+    if (dosificador <= 3)
+    {
+      dosificador = 4;
+      *pCont = 0;
+    }
+    if (dosificador == 4 && *pCont <= (uint32_t)tiempo_dosificador4_ETAPA4)
+    {
+      aplicar_dosificador(4);
+      return true;
+    }
+    break;
+
+  case 5:
+    if (dosificador == 1 && *pCont <= (uint32_t)tiempo_dosificador1_ETAPA5)
+    {
+      aplicar_dosificador(1);
+      return true;
+    }
+    if (dosificador <= 1)
+    {
+      dosificador = 2;
+      *pCont = 0;
+    }
+    if (dosificador == 2 && *pCont <= (uint32_t)tiempo_dosificador2_ETAPA5)
+    {
+      aplicar_dosificador(2);
+      return true;
+    }
+    if (dosificador <= 2)
+    {
+      dosificador = 3;
+      *pCont = 0;
+    }
+    if (dosificador == 3 && *pCont <= (uint32_t)tiempo_dosificador3_ETAPA5)
+    {
+      aplicar_dosificador(3);
+      return true;
+    }
+    if (dosificador <= 3)
+    {
+      dosificador = 4;
+      *pCont = 0;
+    }
+    if (dosificador == 4 && *pCont <= (uint32_t)tiempo_dosificador4_ETAPA5)
+    {
+      aplicar_dosificador(4);
+      return true;
+    }
+    break;
+
+  case 6:
+    // En etapa 6 no dosificas en tu código original (se deja por simetría)
+    break;
+  }
+
+  // Si llegamos aquí, se terminó 1..4 → apagar
+  dosificadores_off();
+  dosificador = 5; // igual que el original
+  *pCont = 0;
+  return false;
+}
+
+// -- 5) Detección de nivel alcanzado (tu criterio actual “duro”)
+static inline bool nivel_alcanzado(void)
+{
+  return (digitalRead(A0) == 0);
+}
+
+// -- 6) UI rápida que ya usabas
+static inline void ui_mostrar_minutos(void)
+{
+  display.setBrightness(0x0f);
+  display.showNumberDec(aminutos, true, 2, 2); // __mm en las dos posiciones bajas
+}
+
+// -- 7) Manejo del error E1 (SE MANTIENE BLOQUEANTE como en tu código)
+static void lanzar_error_llenado_bloqueante(void)
+{
+  lavado.drenado();
+  lavado.STOP_M();
+  valvulas_off();
+
+  ddisplay.clear();
+  display.setBrightness(0x0f);
+  display.setSegments(SEG_E1);
+
+  ciclo_str = 1;
+  etapa_str = DEFAULT_tipo_ciclo;
+  paso_str = 0;
+  String estado_lavadora = "[" + String(ciclo_str) + "," + String(etapa_str) + "," + String(paso_str) + "]\n";
+  Serial2.print(estado_lavadora);
+
+  delay(3000);
+  if (aux_55 == 0)
+  {
+    lavado.PUERTA_OFF();
+#if continental == 1
+    lavado.r_continental_off_1();
+    delay(200);
+    lavado.r_continental_on_2();
+    delay(10000);
+    lavado.r_continental_off_2();
+#endif
+  }
+  aux_55 = 1;
+
+  // Bucle infinito con buzzer (idéntico a tu comportamiento)
+  while (1)
+  {
+    wdt_reset();
+    tone(buzzer, 2000);
+    delay(1000);
+    noTone(buzzer);
+    delay(1000);
+  }
+}
+
+// --- Motor: usa el MISMO tipo del contador global (int*)
+static void motor_step_int(int *pCont, int t_izq, int t_der, int t_rep)
+{
+  // seguridad básica: evita valores negativos o cero
+  if (*pCont < 1)
+  {
+    *pCont = 1;
+  }
+
+  if (llenado == 1)
+  {
+    if (t == 0)
+    {
+      // Giro IZQUIERDA
+      if (*pCont <= t_izq)
+      {
+        lavado.IZQUIERDA_M();
+      }
+      else
+      {
+        *pCont = 1;
+        t = 1; // pasar a reposo
+      }
+    }
+    else
+    { // t == 1
+      // REPOSO
+      if (*pCont <= t_rep)
+      {
+        lavado.STOP_M();
+      }
+      else
+      {
+        t = 0; // volver a giro
+        *pCont = 1;
+        llenado = 0; // CAMBIO DE SENTIDO: siguiente bloque será DERECHA
+      }
+    }
+  }
+  else
+  { // llenado == 0  → bloque DERECHA
+    if (t == 0)
+    {
+      // Giro DERECHA
+      if (*pCont <= t_der)
+      {
+        lavado.DERECHA_M();
+      }
+      else
+      {
+        *pCont = 1;
+        t = 1; // pasar a reposo
+      }
+    }
+    else
+    { // t == 1
+      // REPOSO
+      if (*pCont <= t_rep)
+      {
+        lavado.STOP_M();
+      }
+      else
+      {
+        t = 0; // volver a giro
+        *pCont = 1;
+        llenado = 1; // CAMBIO DE SENTIDO: siguiente bloque será IZQUIERDA
+      }
+    }
+  }
+}
+
+// =============================== FUNCIÓN PRINCIPAL ===============================
+void llenado_mojado(int dato_llenado,
+                    int nivelde_llenado_prelavado,
+                    int tiempo_giro_izquierda,
+                    int tiempo_giro_derecha,
+                    int tiempo_reposo,
+                    int tiempo_aux2,
+                    int LLENADO_AGIpre,
+                    int temperatura,
+                    int ETAPA)
+{
+  // 1) Estado base: no drenado
+  lavado.no_drenado();
+
+  // 2) (mantengo tu asignación redundante de tiempo_llenado=120 por compatibilidad)
+  if (DEFAULT_nivel_agua == 1)
+  {
+    tiempo_llenado = 120;
+  }
+  if (DEFAULT_nivel_agua == 2)
+  {
+    tiempo_llenado = 120;
+  }
+  if (DEFAULT_nivel_agua == 3)
+  {
+    tiempo_llenado = 120;
+  }
+
+  // 3) Válvulas: “falta nivel?” → abre según ETAPA/temperatura; si no, cierra.
+  manejar_valvulas(nivelde_llenado_prelavado, average, ETAPA, temperatura);
+
+  // 4) Ritmo a 1 Hz (solo si cambia el dato)
+  if (dato_llenado != datoAnterior_llenado)
+  {
+    // --- UI (idéntica a tu llamada)
+    ui_mostrar_minutos();
+
+    // --- Si AÚN falta nivel y está armado el “modo supervisión”, entra al bucle
+    if (average <= nivelde_llenado_prelavado && llenado_error == 1)
+    {
+      // reseteo de “time” (tal como tenías) y lazo de supervisión
+      time = 0;
+
+      while (1) // *** se preserva el comportamiento bloqueante ***
+      {
+        // UI continua
+        ui_mostrar_minutos();
+
+        // Watchdog
+        wdt_reset();
+
+        // Cronometría de error (segundos)
+        time = millis() / 1000;
+        dato_error = time;
+        if (dato_error != datoAnterior_error)
+        {
+          // ====== Bloque por segundo ======
+          contador_error_llenado++;
+          contador_dosificador++;
+
+          // 4.1) DOSIFICACIÓN (etapa-dependiente, exactamente como antes)
+          (void)correr_dosificacion_por_etapa(ETAPA, (uint32_t *)&contador_dosificador);
+
+          // 4.2) MOTOR: patrón izquierda/reposo/derecha/reposo con tus flags
+          contador_llenado++; // avanza con tu tick de 1 Hz
+          motor_step_int(&contador_llenado, tiempo_giro_izquierda, tiempo_giro_derecha, tiempo_reposo);
+
+          // 4.3) TIMEOUT DE LLENADO → error E1 bloqueante (igual que original)
+          if (contador_error_llenado >= (uint32_t)tiempo_error_llenado * 60U)
+          {
+            lanzar_error_llenado_bloqueante();
+            // no retorna
+          }
+
+          // 4.4) NIVEL ALCANZADO (tu criterio actual es A0==0)
+          if (nivel_alcanzado())
+          {
+            valvulas_off();
+            average = nivelde_llenado_prelavado + 1; // mismo “truco” que traías
+            contador_llenado = 1;
+            t = 1;
+            llenado_error = 0;
+            llenado = 1;
+            break; // salir del while(1) como en tu flujo
+          }
+        }
+
+        // avance de “datoAnterior_error” (igual que traías)
+        datoAnterior_error = dato_error;
+      }
+    }
+
+    // 5) Si NO estamos en el modo supervisión, mantén el patrón de motor normal
+    //    (esto replica tus dos bloques “llenado==1” y “llenado==0” fuera del while)
+    if (llenado == 1)
+    {
+      contador_llenado++; // avanza con tu tick de 1 Hz
+      motor_step_int(&contador_llenado, tiempo_giro_izquierda, tiempo_giro_derecha, tiempo_reposo);
+    }
+    else
+    {
+      contador_llenado++; // avanza con tu tick de 1 Hz
+      motor_step_int(&contador_llenado, tiempo_giro_izquierda, tiempo_giro_derecha, tiempo_reposo);
+    }
+  }
+
+  // 6) Avance de marca 1 Hz (idéntico)
+  datoAnterior_llenado = dato_llenado;
+}
+
+void drenado_lavado(int dato_llenado,
+                    int /*nivelde_llenado_prelavado*/,
+                    int tiempo_giro_izquierda,
+                    int tiempo_giro_derecha,
+                    int tiempo_reposo,
+                    int /*tiempo_aux2*/,
+                    int /*LLENADO_AGIpre*/)
+{
+  // 1) Asegura drenado activo (igual que antes)
+  lavado.drenado();
+
+  // 2) Tick de 1 Hz: sólo avanza si cambió
+  if (dato_llenado != datoAnterior_llenado) {
+    // Avanza el contador de fase de motor
+    contador_llenado++;
+
+    // 3) Patrón IZQ → REPO → DER → REPO (misma lógica que tenías)
+    motor_step_int(&contador_llenado, tiempo_giro_izquierda, tiempo_giro_derecha, tiempo_reposo);
+  }
+
+  // 4) Cierra el ciclo del tick
+  datoAnterior_llenado = dato_llenado;
+}
+
+/*
 void llenado_mojado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_giro_izquierda, int tiempo_giro_derecha, int tiempo_reposo, int tiempo_aux2, int LLENADO_AGIpre, int temperatura, int ETAPA)
 {
   lavado.no_drenado();
-  /* Serial.print("tipo agua:");
-   Serial.println(DEFAULT_nivel_agua);*/
+
   if (DEFAULT_nivel_agua == 1)
   {
     tiempo_llenado = 120;
@@ -578,19 +1110,10 @@ void llenado_mojado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_
     display.showNumberDec(aminutos, true, 2, 2); // Expect: __04
     if (average <= nivelde_llenado_prelavado && llenado_error == 1)
     {
-      // Serial.println("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
       time = 0;
       while (1)
       {
 
-        /*
-        if ((millis() - lastTime) > 1000)
-        {
-          //   Serial2.print("[2]");
-          ddisplay.clear();
-          lastTime = millis();
-        }
-*/
         display.setBrightness(0x0f);
         display.showNumberDec(aminutos, true, 2, 2); // Expect: __04
         wdt_reset();
@@ -892,9 +1415,6 @@ void llenado_mojado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_
                 {
                   average = nivelde_llenado_prelavado + 1;
                   lavado.val_off();
-                  /* average = nivelde_llenado_prelavado + 1;
-                   Serial.print("average");
-                   Serial.println(average);*/
                   contador_llenado = 1;
                   t = 1;
                   llenado_error = 0;
@@ -950,17 +1470,13 @@ void llenado_mojado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_
                     noTone(buzzer);
                     delay(1000);
                   }
-                  // asm volatile(" jmp 0");
-                  // ERROR LLENADO
+
                 }
                 // if (contador_error_llenado >= tiempo_llenado)
                 if (digitalRead(A0) == 0)
                 {
                   lavado.val_off();
                   average = nivelde_llenado_prelavado + 1;
-                  /* average = nivelde_llenado_prelavado + 1;
-                   Serial.print("average");
-                   Serial.println(average);*/
                   contador_llenado = 1;
                   t = 1;
                   llenado_error = 0;
@@ -984,16 +1500,11 @@ void llenado_mojado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_
               if (contador_llenado <= tiempo_giro_derecha)
               {
                 lavado.DERECHA_M();
-                //  Serial.println("derecha");
-
-                // if (contador_error_llenado >= tiempo_llenado)
                 if (digitalRead(A0) == 0)
                 {
                   lavado.val_off();
                   average = nivelde_llenado_prelavado + 1;
-                  /*average = nivelde_llenado_prelavado + 1;
-                  Serial.print("average");
-                  Serial.println(average);*/
+
                   contador_llenado = 1;
                   t = 1;
                   llenado_error = 0;
@@ -1059,9 +1570,6 @@ void llenado_mojado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_
                 {
                   lavado.val_off();
                   average = nivelde_llenado_prelavado + 1;
-                  /*  average = nivelde_llenado_prelavado + 1;
-                    Serial.print("average");
-                    Serial.println(average);*/
                   contador_llenado = 1;
                   t = 1;
                   llenado_error = 0;
@@ -1145,6 +1653,8 @@ void llenado_mojado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_
   datoAnterior_llenado = dato_llenado;
 }
 
+*/
+/*
 void drenado_lavado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_giro_izquierda, int tiempo_giro_derecha, int tiempo_reposo, int tiempo_aux2, int LLENADO_AGIpre)
 {
   lavado.drenado();
@@ -1219,6 +1729,7 @@ void drenado_lavado(int dato_llenado, int nivelde_llenado_prelavado, int tiempo_
   }
   datoAnterior_llenado = dato_llenado;
 }
+*/
 
 void setup()
 {
@@ -2401,7 +2912,7 @@ void loop()
     }
     // if (Inicio.isPressed() || EEPROM.read(33) > 2) // evaluo si el boton fue presionado
     // Serial.print(etapa);
-    if (Inicio.isPressed()|| etapa_2>2||activacion_2==10) // evaluo si el boton fue presionado
+    if (Inicio.isPressed() || etapa_2 > 2 || activacion_2 == 10) // evaluo si el boton fue presionado
     {
 
       if (EEPROM.read(102) == 1)
