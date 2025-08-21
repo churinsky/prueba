@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #define modelo 0            // modelo de tarjeta nueva 0 vieja 1
-#define precio_on 0         // 0 sin precio  en 1 para monedas  2 para banda,  3 solo precio iniciando a mario
+#define precio_on 3         // 0 sin precio    2 para banda,  3 solo precio iniciando a mario
 #define serial 1            // 0 activa la lectura de banda, 1 activa la puerta 110V y puerta 24+,
 #define continental 0       // 0 puerta continental off, 1 puerta continental on
 #define activacion_puerta 0 // 0 puerta speedquen 110,  1 puerta continental
@@ -14,10 +14,9 @@
 #include "Led.h"
 #include "Seleccion_parametros.h"
 #include "Lavado.h"
-#include "Programacion.h"
 #include "EEPROM.h"
 #include <Wire.h>
-#include <SoftwareSerial.h> // Incluimos la librería  SoftwareSerialx
+#include <SoftwareSerial.h>
 #include <avr/wdt.h>
 ////////////////////////////////////////
 int cambio = 1;
@@ -40,6 +39,7 @@ static bool instruccionEnviada29 = false;
 int aux_con_door = 1;
 ////////////////////////////////////////
 const unsigned long tiempoDeseado = 20000;
+
 unsigned long tiempoInicio;
 unsigned long lastTime = 0;
 String combinedString;
@@ -114,8 +114,6 @@ int h1a = EEPROM.read(304);
 int l1a = EEPROM.read(305);
 int wa = h1a << 8;
 int tiempo_alto = wa + l1a;
-////programacion de niveles
-int tiempo_llenado;
 
 unsigned long lastDebounceTime = 0;   // the last time the output pin was toggled
 unsigned long debounceDelay = 200000; // the debounce time; increase if the output flickers
@@ -142,8 +140,6 @@ int dato_error;
 int datoAnterior_error = 0;
 int contador_error_llenado;
 int tiempo_error_llenado = EEPROM.read(161);
-;
-;
 bool t = 1;
 int llenado_error = 1;
 int error_llenado = 0;
@@ -196,6 +192,7 @@ int CENTRIFUex2;
 int nivel_de_llenado_ennjuague_extra_2;
 int TIEMPO_ENJUAGUE_EXTRA_2;
 //--------------------------------------------
+
 int LLENADO_AGIfin;
 int DESAGUE_AGIfin;
 int CENTRIFUfin;
@@ -302,7 +299,6 @@ void parametros()
 #define DEPOSITO3 24
 #define BUTT_TOP 30   // button top-------------FALTA DEFINIRLOS
 #define BUTT_BOT A2   // button bottom------------- FALTA DEFINIRLOS
-#define BUTT_nivel 11 // button bottom------------- FALTA DEFINIRLOS
 #if serial == 1
 #define PUERTA_ON_110 50  // MISO
 #define PUERTA_OFF_110 51 // MOSI
@@ -358,9 +354,6 @@ Button tipo_ciclo(ciclo);
 Button tipo_temperatura(temper);
 Button nivel_agua(agua);
 Button Inicio(inicio);
-/////////////////////////
-// CLASDE PROGRAMACION
-Programacion programacion;
 //////////////////////
 // CLASE MENU
 Menu menu_temp;
@@ -374,9 +367,7 @@ Led led(tciclo_LED, ttemperatura_LED, tagua_LED, tinicio_LED);
 
 // CLASE LAVADO
 Lavado lavado(PRESOSTATO, MOTOR_BAJA, SECUENCIA, MOTOR_ALTA, PUERTA, DESAGUE, TAMBOR_DEPOSITO1_FRIA, TAMBOR_DEPOSITO1_CALIENTE, DEPOSITO2, DEPOSITO3, BUTT_TOP, BUTT_BOT, PUERTA_ON_110, PUERTA_OFF_110, CONTROL_VAC);
-//////////////////////////////////////////////
 
-//////////////////////////////////le movi aqui para etna
 // ========================= Helpers locales (mismo archivo) =========================
 
 // -- 1) Selección de válvulas según ETAPA y temperatura (cuando “falta” nivel)
@@ -662,24 +653,26 @@ static int __mm_prev = -1;
 static inline void ui_mostrar_minutos(int mm)
 {
   // Normaliza rango 0..99
-  if (mm < 0)   mm = 0;
-  if (mm > 99)  mm = 99;
+  if (mm < 0)
+    mm = 0;
+  if (mm > 99)
+    mm = 99;
 
   // Si no cambió, no toques el display
-  if (mm == __mm_prev) return;
+  if (mm == __mm_prev)
+    return;
   __mm_prev = mm;
 
   display.setBrightness(0x0f);
 
   // Cargamos los 4 segmentos manualmente: dos primeros apagados, dos últimos = minutos
   uint8_t segs[4];
-  segs[0] = 0x00;                     // dígito 0 apagado
-  segs[1] = 0x00;                     // dígito 1 apagado
-  segs[2] = display.encodeDigit(mm / 10);  // decenas
-  segs[3] = display.encodeDigit(mm % 10);  // unidades
+  segs[0] = 0x00;                         // dígito 0 apagado
+  segs[1] = 0x00;                         // dígito 1 apagado
+  segs[2] = display.encodeDigit(mm / 10); // decenas
+  segs[3] = display.encodeDigit(mm % 10); // unidades
   display.setSegments(segs);
 }
-
 
 // -- 7) Manejo del error E1 (SE MANTIENE BLOQUEANTE como en tu código)
 static void lanzar_error_llenado_bloqueante(void)
@@ -808,20 +801,6 @@ void llenado_mojado(int dato_llenado,
   // 1) Estado base: no drenado
   lavado.no_drenado();
 
-  // 2) (mantengo tu asignación redundante de tiempo_llenado=120 por compatibilidad)
-  if (DEFAULT_nivel_agua == 1)
-  {
-    tiempo_llenado = 120;
-  }
-  if (DEFAULT_nivel_agua == 2)
-  {
-    tiempo_llenado = 120;
-  }
-  if (DEFAULT_nivel_agua == 3)
-  {
-    tiempo_llenado = 120;
-  }
-
   // 3) Válvulas: “falta nivel?” → abre según ETAPA/temperatura; si no, cierra.
   manejar_valvulas(nivelde_llenado_prelavado, average, ETAPA, temperatura);
 
@@ -829,8 +808,7 @@ void llenado_mojado(int dato_llenado,
   if (dato_llenado != datoAnterior_llenado)
   {
     // --- UI (idéntica a tu llamada)
-   ui_mostrar_minutos(aminutos);
-
+    ui_mostrar_minutos(aminutos);
 
     // --- Si AÚN falta nivel y está armado el “modo supervisión”, entra al bucle
     if (average <= nivelde_llenado_prelavado && llenado_error == 1)
@@ -842,7 +820,6 @@ void llenado_mojado(int dato_llenado,
       {
         // UI continua
         ui_mostrar_minutos(aminutos);
-
 
         // Watchdog
         wdt_reset();
@@ -1140,14 +1117,21 @@ inline void run_centrifugado(int e)
   // y las funciones: lavado.STOP_M(), .DERECHA_M(), .CENTRIFUGADO(), .agua_fria_centrifugado(), .val_off()
 
   // 1) Arranque suave ~30s (idéntico a lo que traías)
-  if (tiempo_aux2 <= 30) {
-    if (tiempo_aux2 >= 29) {
+  if (tiempo_aux2 <= 30)
+  {
+    if (tiempo_aux2 >= 29)
+    {
       lavado.STOP_M();
-      tiempoInicio = millis();      // marcas el inicio para el “shot” de agua
-    } else {
-      if (tiempo_aux2 <= 5) {
+      tiempoInicio = millis(); // marcas el inicio para el “shot” de agua
+    }
+    else
+    {
+      if (tiempo_aux2 <= 5)
+      {
         lavado.STOP_M();
-      } else {
+      }
+      else
+      {
         lavado.DERECHA_M();
       }
     }
@@ -1155,9 +1139,10 @@ inline void run_centrifugado(int e)
   }
 
   // 2) Últimos 20s del paso → STOP para no frenar en seco
-  int dur = dur_centri(e);                  // minutos
-  int faltan = (dur * 60) - tiempo_aux2;    // segs restantes del paso de centrifugado
-  if (faltan <= 50) {
+  int dur = dur_centri(e);               // minutos
+  int faltan = (dur * 60) - tiempo_aux2; // segs restantes del paso de centrifugado
+  if (faltan <= 50)
+  {
     lavado.STOP_M();
     return;
   }
@@ -1166,9 +1151,12 @@ inline void run_centrifugado(int e)
   //    durante 'tiempoDeseado' milisegundos desde que hiciste STOP de rampa.
   unsigned long ahora = millis();
   unsigned long trans = ahora - tiempoInicio;
-  if (trans < tiempoDeseado) {
-    //lavado.agua_fria_centrifugado();
-  } else {
+  if (trans < tiempoDeseado)
+  {
+    // lavado.agua_fria_centrifugado();
+  }
+  else
+  {
     lavado.val_off();
   }
 
@@ -1178,38 +1166,56 @@ inline void run_centrifugado(int e)
   // Aquí uso bloques de 120s para el patrón como traías en final,
   // y de 10s en el pre-rampa (ya cubierto arriba).
   int intervalNumber = (tiempo_aux2 / 120) % 2;
-  switch (intervalNumber) {
-    case 0:
-      lavado.DERECHA_M();
-      cambio = 1;
-      if (cambio_2 == 1) {
-        lavado.STOP_M();
-        cambio_2 = 0;
-        // tus pausas largas: mantengo la semántica sin saturar el WDT
-        for (int i=0;i<2;i++){ wdt_reset(); delay(6000); }
-        for (int i=0;i<2;i++){ wdt_reset(); delay(4000); }
-      }
-      break;
-    case 1:
-      if (cambio == 1) {
-        lavado.STOP_M();
-        cambio = 0;
-        for (int i=0;i<2;i++){ wdt_reset(); delay(6000); }
-        for (int i=0;i<2;i++){ wdt_reset(); delay(4000); }
-      }
-      lavado.CENTRIFUGADO();
-      cambio_2 = 1;
-      break;
-    default:
+  switch (intervalNumber)
+  {
+  case 0:
+    lavado.DERECHA_M();
+    cambio = 1;
+    if (cambio_2 == 1)
+    {
       lavado.STOP_M();
-      break;
+      cambio_2 = 0;
+      // tus pausas largas: mantengo la semántica sin saturar el WDT
+      for (int i = 0; i < 2; i++)
+      {
+        wdt_reset();
+        delay(6000);
+      }
+      for (int i = 0; i < 2; i++)
+      {
+        wdt_reset();
+        delay(4000);
+      }
+    }
+    break;
+  case 1:
+    if (cambio == 1)
+    {
+      lavado.STOP_M();
+      cambio = 0;
+      for (int i = 0; i < 2; i++)
+      {
+        wdt_reset();
+        delay(6000);
+      }
+      for (int i = 0; i < 2; i++)
+      {
+        wdt_reset();
+        delay(4000);
+      }
+    }
+    lavado.CENTRIFUGADO();
+    cambio_2 = 1;
+    break;
+  default:
+    lavado.STOP_M();
+    break;
   }
 #else
   // Sin amortiguador: centrifugado directo
   lavado.CENTRIFUGADO();
 #endif
 }
-
 
 // 8) Ejecuta el PASO actual (0 = Llenado, 1 = Drenado, 2 = Centrifugado)
 inline void run_paso_actual()
@@ -1409,19 +1415,11 @@ bool bloqueo_puerta_loop(unsigned long &lastTime,
 
 void setup()
 {
-
-  // EEPROM.update(101, 2);
-  // EEPROM.update(33, 1);
   wdt_disable();
-// EEPROM.update(101, 2); // nivel de agua_ normal 165 mediana chica 163
 #if serial == 0
   BT.begin(9600);
 #endif
-#if precio_on == 1
-  if (EEPROM.read(1001) == 0)
-  {
-  }
-#endif
+
   Serial.begin(9600);
   Serial2.begin(115200);
 
@@ -1480,18 +1478,6 @@ void setup()
   {
     k = 1;
   }
-  if (tipo_temperatura.isPressed())
-  {
-    //  k = 2;
-  }
-  if (nivel_agua.isPressed())
-  {
-    //  k = 3;
-  }
-  if (Inicio.isPressed())
-  {
-    //  k = 4;
-  }
 
 #if (opl == 1)
   EEPROM.update(1001, 0); // opl por mientras
@@ -1503,27 +1489,9 @@ void setup()
   EEPROM.update(1001, 1); // opl por mientras
 #endif
 
-  // EEPROM.update(400, 0); //
-  // EEPROM.update(401, 0); // 0
-  // EEPROM.update(402, 0); //
-  // EEPROM.update(403, 0); // 8
-  // EEPROM.update(404, 0); // 1
-  // EEPROM.update(405, 0); //
-  // EEPROM.update(406, 0); // 8
-  //  EEPROM.update(407, 0); // 1
-  //  EEPROM.update(408, 0); //
-  //  EEPROM.update(409, 0); // 8
-  //  EEPROM.update(410, 0); // 1
-  //  EEPROM.update(411, 0); //
-
   wdt_enable(WDTO_8S);
-
-  //  lavado.no_drenado();
-  //  lavado.DERECHA_M();
-  //  lavado.enjuague_final();
-  // lavado.CENTRIFUGADO();
-  // lavado.IZQUIERDA_M();
 }
+
 void loop()
 {
   switch (k)
@@ -1631,8 +1599,6 @@ void loop()
       {
         wdt_reset();
         Serial2.print("status_2\n");
-        Serial.print("status_2\n");
-
         while (millis() - previousMillis < interval)
         {
         }
@@ -1652,8 +1618,6 @@ void loop()
       {
         wdt_reset();
         Serial2.print("status\n");
-        // Serial.print("status\n");
-
         while (millis() - previousMillis < interval)
         {
         }
@@ -1662,31 +1626,11 @@ void loop()
       }
     }
 
-    ////////////////////////////
-    /*
-    #if continental == 1
-
-        if (digitalRead(BUTT_BOT) == 1)
-        {
-          aux_con_door = 0;
-          lavado.r_continental_off_2();
-        }
-        while (digitalRead(BUTT_BOT) == 0 && aux_con_door == 1)
-        {
-          lavado.r_continental_on_2();
-          wdt_reset();
-        }
-    #endif*/
-    ////////////////////////////
-
     while (digitalRead(BUTT_BOT) == 0 && digitalRead(BUTT_TOP) == 0)
     {
       wdt_reset();
       display.setBrightness(0x0f);
       display.setSegments(SEG_E5);
-      // Serial.println("32\n");
-
-      // Serial.print(estado_lavadora);
       lavado.PUERTA_ON();
       delay(2000);
       wdt_reset();
@@ -1719,17 +1663,17 @@ void loop()
       String tarjeta = BT.readString();
       if (tarjeta.length() > 20)
       {
-        Serial.print(tarjeta.substring(1, 21));
+       // Serial.print(tarjeta.substring(1, 21));
       }
 
       DEFAULT_tipo_ciclo = tipo_ciclo.pulses(DEFAULT_tipo_ciclo); // limita los estados que puede haber en el switch
-      Serial.print(DEFAULT_tipo_ciclo);
-      Serial.print(",");
+     // Serial.print(DEFAULT_tipo_ciclo);
+     // Serial.print(",");
       DEFAULT_tipo_temperatura = tipo_temperatura.pulses(DEFAULT_tipo_temperatura); // limita los estados que puede haber en el switch
-      Serial.print(DEFAULT_tipo_temperatura);
+     // Serial.print(DEFAULT_tipo_temperatura);
       DEFAULT_nivel_agua = nivel_agua.pulses(DEFAULT_nivel_agua); // limita los estados que puede haber en el switch
-      Serial.print(",");
-      Serial.print(DEFAULT_nivel_agua);
+     // Serial.print(",");
+    //  Serial.print(DEFAULT_nivel_agua);
 
       ////////////
       ddisplay.clear();
@@ -1747,20 +1691,6 @@ void loop()
       Serial2.print(",");
       Serial2.print(DEFAULT_nivel_agua);
     }
-
-    /*
-    /////////////////// lo puse con etna
-    aa = String(recived).toInt();
-    if (aa > 0)
-    {
-      Serial2.print("OK");
-      activacion = 10;
-      ddisplay.clear();
-      display.setBrightness(0x0f);
-      display.setSegments(SEG_on);
-    }
-    ////////////////////
-    */
     if (Serial2.available() > 0)
     {
       recived = Serial2.readString();
@@ -1769,36 +1699,34 @@ void loop()
         tone(buzzer, 1000);
         delay(100);
         noTone(buzzer);
-        Serial.println("precios_Actualziados");
+        //   Serial.println("precios_Actualziados");
         posicion1 = recived.indexOf("Precios: ");
         palabra1 = recived.substring(posicion1 + 11, posicion1 + 14);
-        Serial.println(palabra1);
+        //  Serial.println(palabra1);
         EEPROM.update(500, palabra1.toInt());
         palabra1 = recived.substring(posicion1 + 17, posicion1 + 20);
-        Serial.println(palabra1);
+        //     Serial.println(palabra1);
         EEPROM.update(501, palabra1.toInt());
         palabra1 = recived.substring(posicion1 + 23, posicion1 + 26);
-        Serial.println(palabra1);
+        //    Serial.println(palabra1);
         EEPROM.update(502, palabra1.toInt());
         palabra1 = recived.substring(posicion1 + 29, posicion1 + 32);
-        Serial.println(palabra1);
+        //    Serial.println(palabra1);
         EEPROM.update(503, palabra1.toInt());
         palabra1 = recived.substring(posicion1 + 36, posicion1 + 39);
-        Serial.println(palabra1);
+        //   Serial.println(palabra1);
         EEPROM.update(504, palabra1.toInt());
       }
 
       if (recived.substring(0, 9) == "Resultado")
       {
 
-        Serial.println("AQUI2");
+       
         posicion1 = recived.indexOf("Resultado: ");
         palabra1 = recived.substring(posicion1 + 10, posicion1 + 15);
         aa = String(palabra1).toInt();
         aa1 = String(palabra1).toInt();
-        Serial.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-        Serial.println(aa);
-        Serial.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
         if (aa > 0)
         {
           ddisplay.clear();
@@ -1832,38 +1760,6 @@ void loop()
 
 ///////////////////////////////////////////////////////
 #if serial == 1
-#if opl == 2
-    const int maxExpectedLength = 166;
-    char incomingData[maxExpectedLength + 1];
-    int index = 0;
-    bool endOfData = false;
-
-    while (index < maxExpectedLength && !endOfData)
-    {
-      wdt_reset();
-      if (Serial2.available() > 0)
-      {
-        char incomingByte = Serial2.read();
-        Serial.print(incomingByte);
-
-        incomingData[index] = incomingByte;
-        index++;
-
-        if (incomingByte == '}')
-        {
-          endOfData = true;
-        }
-      }
-    }
-    incomingData[index] = '\0'; // Añadir el carácter nulo al final
-
-    if (index <= 10) // cadena corta
-    {
-    }
-    else // cadena larga
-    {
-    }
-#endif
 
 #if opl == 1
     const int expectedLength = 10;
@@ -1872,28 +1768,19 @@ void loop()
 
     while (index < expectedLength && activacion == 0)
     {
-      // Serial.print("sssssssssss");
       wdt_reset();
       if (Serial2.available() > 0)
       {
         // Lee el siguiente byte disponible
         char incomingByte = Serial.read();
-        Serial.print(incomingByte);
         index++;
       }
-      /*   if(EEPROM.read(33)>1){
-              parametros();
-             activacion = 10;
-           break;
-         }
-         */
     }
 
     if (Serial2.available() > 0)
     {
       wdt_reset();
       recived = Serial2.readString();
-      Serial.print(recived);
       int startPos = recived.indexOf('{');
       int endPos = recived.indexOf('}');
       if (startPos >= 0 && endPos >= 0)
@@ -1937,9 +1824,6 @@ void loop()
           {
             wdt_reset();
             Serial2.print("ok\n");
-            // Serial2.print("ok\n"); // Envía el comando "01"
-            // Serial.print("ok\n");  // Envía el comando "01"
-            //  Espera hasta que haya pasado 1 segundo
             while (millis() - previousMillis < interval)
             {
               // No hacer nada aquí, solo esperar
@@ -1959,13 +1843,7 @@ void loop()
           seleccion_ciclo(numbersArray[1].toInt());
           seleccion_temperatura(numbersArray[2].toInt());
           seleccion_agua(numbersArray[3].toInt());
-          Serial.print(DEFAULT_tipo_ciclo);
-          Serial.println(DEFAULT_tipo_ciclo);
-          Serial.println(DEFAULT_tipo_temperatura);
-          Serial.println(DEFAULT_nivel_agua);
           parametros();
-          Serial.print(TIEMPO);
-          // Serial.print("CCCCCCCCCCCCFVFDFGDFSDFSDFSDSDSDFSDSDCSDCSDCSDCSDCSDCSDCSDCSD");
         }
       }
       //////////////////////////////////////
@@ -1973,6 +1851,7 @@ void loop()
       int endPos_3 = recived.indexOf('>');
       if (startPos_3 >= 0 && endPos_3 >= 0)
       {
+
         wdt_reset();
         String numbersString = recived.substring(startPos_3 + 1, endPos_3);
 
@@ -2002,7 +1881,6 @@ void loop()
         if (numbersArray[0].toInt() > 0)
         {
           activacion_2 = 10;
-          // Serial.print("HERE");
         }
       }
       //////////////////////////////////////
@@ -2039,32 +1917,10 @@ void loop()
         etapa_2 = (numbersArray[0].toInt()) - 2;
         continua = (numbersArray[3].toInt());
         //////////////////////////////////////////////
-        Serial.print("etapa_2:");
-        Serial.println(etapa_2);
-
-        Serial.print("numero:");
-        Serial.println(numbersArray[0].toInt());
-        Serial.print("tiempo_preñavado:");
-        Serial.println(TIEMPO_PRELAVADO * 60);
-        Serial.print("tiempo_lavado:");
-        Serial.println(TIEMPO_LAVADO * 60);
-        Serial.print("tiempo_enjuague:");
-        Serial.println(TIEMPO_ENJUAGUE * 60);
-        Serial.print("tiempo_enjuaguex1:");
-        Serial.println(TIEMPO_ENJUAGUE_EXTRA_1 * 60);
-        Serial.print("tiempo_enjuaguex2:");
-        Serial.println(TIEMPO_ENJUAGUE_EXTRA_2 * 60);
-        Serial.print("tiempo_enjuagueF:");
-        Serial.println(TIEMPO_ENJUAGUE_FINAL * 60);
-        Serial.print("tiempo_centrifugadoF:");
-        Serial.println(TIEMPO_CENTRIFUGADO_FINAL * 60);
         if (etapa_2 > 0)
         {
           activacion = 10;
-
           etapa = etapa_2;
-          Serial.print("etapa:");
-          Serial.println(etapa);
         }
 
 #if opl == 1
@@ -2072,7 +1928,6 @@ void loop()
         {
           if (TIEMPO_PRELAVADO * 60 > 0)
           {
-            Serial.println("TIempo_etapa_prelavado");
             etapa = 1;
             if (numbersArray[0].toInt() == 0)
             {
@@ -2081,7 +1936,6 @@ void loop()
           }
           else if (TIEMPO_LAVADO * 60 > 0)
           {
-            Serial.println("TIempo_etapa_lavado");
             etapa = 2;
             if (numbersArray[0].toInt() == 0)
             {
@@ -2090,7 +1944,6 @@ void loop()
           }
           else if (TIEMPO_ENJUAGUE * 60 > 0)
           {
-            Serial.println("TIempo_etapa_enjuague");
             etapa = 3;
             if (numbersArray[0].toInt() == 0)
             {
@@ -2099,7 +1952,6 @@ void loop()
           }
           else if (TIEMPO_ENJUAGUE_EXTRA_1 * 60 > 0)
           {
-            Serial.println("TIempo_etapa_enjuaguex1");
             etapa = 4;
             if (numbersArray[0].toInt() == 0)
             {
@@ -2108,7 +1960,6 @@ void loop()
           }
           else if (TIEMPO_ENJUAGUE_EXTRA_2 * 60 > 0)
           {
-            Serial.println("TIempo_etapa_enjuaguex2");
             etapa = 5;
             if (numbersArray[0].toInt() == 0)
             {
@@ -2117,7 +1968,6 @@ void loop()
           }
           else if (TIEMPO_ENJUAGUE_FINAL * 60 > 0)
           {
-            Serial.println("TIempo_etapa_enjuagueF");
             etapa = 6;
             if (numbersArray[0].toInt() == 0)
             {
@@ -2126,7 +1976,6 @@ void loop()
           }
           else if (TIEMPO_CENTRIFUGADO_FINAL * 60 > 0)
           {
-            Serial.println("TIempo_etapa_Centrifugado");
             etapa = 7;
             if (numbersArray[0].toInt() == 0)
             {
@@ -2134,16 +1983,8 @@ void loop()
             }
           }
         }
-        /*    if (etapa_2 < etapa)
-            {
-              etapa_2 = etapa;
-            }
-            else
-              etapa = etapa_2;*/
 #endif
-        // parametros();
       }
-      ////////
     }
 #endif
 
@@ -2199,11 +2040,7 @@ void loop()
     {
       precio_nivel = nivel_3;
     }
-    /*
-          Serial.println(precio_temp);
-          Serial.println(precio_ciclo);
-          Serial.println(precio_temp + precio_ciclo);
-    */
+
     /////////////////////////////////////////////////////////////
 
     if (activacion != 10)
@@ -2517,7 +2354,6 @@ void loop()
     /////////////////////////////////////////////////
     if (activacion == 0)
     {
-      // Serial.println("XXXXXXXXXXXSSDDDFDFSDFSDFSDFSDFS");
       wdt_reset();
       if (tipo_ciclo.isPressed()) // evaluo si el boton fue presionado
       {
@@ -2536,10 +2372,6 @@ void loop()
         led.ciclo_LED();
         parametros();
       }
-      /*if (digitalRead(maquina_on) == 0)
-      {
-        k = 1;
-      }*/
 
       if (tipo_temperatura.isPressed()) // evaluo si el boton fue presionado
       {
@@ -2584,10 +2416,8 @@ void loop()
         led.agua_LED();
         parametros();
       }
-      // if (Inicio.isPressed()&&activacion == 10){}
     }
-    // if (Inicio.isPressed() || EEPROM.read(33) > 2) // evaluo si el boton fue presionado
-    // Serial.print(etapa);
+
     if (Inicio.isPressed() || etapa_2 > 2 || activacion_2 == 10) // evaluo si el boton fue presionado
     {
 
@@ -2621,10 +2451,6 @@ void loop()
         instruccionEnviada29 = true;
       }
 
-      //  if( EEPROM.read(33)>2)
-      //{
-      // activacion == 10;
-      // }
       wdt_reset();
       digitalWrite(enable_monedero, HIGH);
 
@@ -2667,364 +2493,10 @@ void loop()
       {
         precio_nivel = nivel_3;
       }
-      /*
-            Serial.println(precio_temp);
-            Serial.println(precio_ciclo);
-            Serial.println(precio_temp + precio_ciclo);
-      */
       /////////////////////////////////////////////////////////////
       ddisplay.clear();
       display.setBrightness(0x0f);
       display.showNumberDec(((precio_temp + precio_ciclo + precio_nivel)), true, 3, 1); // Expect: __04
-#endif
-#if precio_on == 1
-
-      if (DEFAULT_tipo_ciclo == 1)
-      {
-        // precio_ciclo = EEPROM.read(500);
-        precio_ciclo = ciclo_1;
-      }
-      if (DEFAULT_tipo_ciclo == 2)
-      {
-        // precio_ciclo = EEPROM.read(501);
-        precio_ciclo = ciclo_2;
-      }
-      if (DEFAULT_tipo_ciclo == 3)
-      {
-        // precio_ciclo = EEPROM.read(502);
-        precio_ciclo = ciclo_3;
-      }
-      if (DEFAULT_tipo_ciclo == 4)
-      {
-        // precio_ciclo = EEPROM.read(502);
-        precio_ciclo = ciclo_4;
-      }
-
-      if (DEFAULT_tipo_temperatura == 1)
-      {
-        precio_temp = 0;
-      }
-      if (DEFAULT_tipo_temperatura == 2)
-      {
-        // precio_temp = EEPROM.read(503);
-        precio_temp = precio_tibia;
-      }
-      if (DEFAULT_tipo_temperatura == 3)
-      {
-        //  precio_temp = EEPROM.read(504);
-        precio_temp = precio_caliente;
-      }
-      if (DEFAULT_nivel_agua == 1)
-      {
-        precio_nivel = 0;
-      }
-
-      if (DEFAULT_nivel_agua == 2)
-      {
-        precio_nivel = nivel_2;
-      }
-      if (DEFAULT_nivel_agua == 3)
-      {
-        precio_nivel = nivel_3;
-      }
-      /*
-            Serial.println(precio_temp);
-            Serial.println(precio_ciclo);
-            Serial.println(precio_temp + precio_ciclo);
-      */
-      /////////////////////////////////////////////////////////////
-      ddisplay.clear();
-      display.setBrightness(0x0f);
-      display.showNumberDec(((precio_temp + precio_ciclo + precio_nivel) * valor_moneda), true, 3, 1); // Expect: __04
-
-      while (activacion != 10)
-      {
-        if (Inicio.isPressed()) // evaluo si el boton fue presionado
-        {
-          if ((millis() - lastDebounceTime) > debounceDelay)
-          {
-            asm volatile(" jmp 0");
-          }
-          if (DEFAULT_tipo_ciclo == 1)
-          {
-            // precio_ciclo = EEPROM.read(500);
-            precio_ciclo = ciclo_1;
-          }
-          if (DEFAULT_tipo_ciclo == 2)
-          {
-            // precio_ciclo = EEPROM.read(501);
-            precio_ciclo = ciclo_2;
-          }
-          if (DEFAULT_tipo_ciclo == 3)
-          {
-            // precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_3;
-          }
-          if (DEFAULT_tipo_ciclo == 4)
-          {
-            //  precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_4;
-          }
-          if (DEFAULT_tipo_temperatura == 1)
-          {
-            precio_temp = 0;
-          }
-          if (DEFAULT_tipo_temperatura == 2)
-          {
-            //  precio_temp = EEPROM.read(503);
-            precio_temp = precio_tibia;
-          }
-          if (DEFAULT_tipo_temperatura == 3)
-          {
-            //  precio_temp = EEPROM.read(504);
-            precio_temp = precio_caliente;
-          }
-          if (DEFAULT_nivel_agua == 1)
-          {
-            precio_nivel = 0;
-          }
-
-          if (DEFAULT_nivel_agua == 2)
-          {
-            precio_nivel = nivel_2;
-          }
-          if (DEFAULT_nivel_agua == 3)
-          {
-            precio_nivel = nivel_3;
-          }
-          ddisplay.clear();
-          display.setBrightness(0x0f);
-          display.showNumberDec(((precio_temp + precio_ciclo + precio_nivel) * valor_moneda), true, 3, 1); // Expect: __04
-        }
-
-        if (tipo_ciclo.isPressed()) // evaluo si el boton fue presionado
-        {
-          if (dato_moneda == HIGH && datoAnterior_moneda == LOW)
-          {
-            contador_moneda++;
-          }
-          datoAnterior_moneda = dato_moneda;
-          DEFAULT_tipo_ciclo++;
-          DEFAULT_tipo_ciclo = tipo_ciclo.pulses(DEFAULT_tipo_ciclo); // limita los estados que puede haber en el switch
-          menu_ciclo.cases(DEFAULT_tipo_ciclo, 1);
-          seleccion_ciclo(DEFAULT_tipo_ciclo);
-          seleccion_temperatura(DEFAULT_tipo_temperatura);
-          seleccion_agua(DEFAULT_nivel_agua);
-          led.ciclo_LED();
-          parametros();
-
-          if (DEFAULT_tipo_ciclo == 1)
-          {
-            // precio_ciclo = EEPROM.read(500);
-            precio_ciclo = ciclo_1;
-          }
-          if (DEFAULT_tipo_ciclo == 2)
-          {
-            // precio_ciclo = EEPROM.read(501);
-            precio_ciclo = ciclo_2;
-          }
-          if (DEFAULT_tipo_ciclo == 3)
-          {
-            // precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_3;
-          }
-          if (DEFAULT_tipo_ciclo == 4)
-          {
-            // precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_4;
-          }
-          if (DEFAULT_tipo_temperatura == 1)
-          {
-            precio_temp = 0;
-          }
-          if (DEFAULT_tipo_temperatura == 2)
-          {
-            // precio_temp = EEPROM.read(503);
-            precio_temp = precio_tibia;
-          }
-          if (DEFAULT_tipo_temperatura == 3)
-          {
-            // precio_temp = EEPROM.read(504);
-            precio_temp = precio_caliente;
-          }
-          if (DEFAULT_nivel_agua == 1)
-          {
-            precio_nivel = 0;
-          }
-
-          if (DEFAULT_nivel_agua == 2)
-          {
-            precio_nivel = nivel_2;
-          }
-          if (DEFAULT_nivel_agua == 3)
-          {
-            precio_nivel = nivel_3;
-          }
-          ddisplay.clear();
-          display.setBrightness(0x0f);
-          display.showNumberDec(((precio_temp + precio_ciclo + precio_nivel) * valor_moneda) - (contador_moneda * valor_moneda), true, 3, 1);
-        }
-
-        if (tipo_temperatura.isPressed()) // evaluo si el boton fue presionado
-        {
-          if (dato_moneda == HIGH && datoAnterior_moneda == LOW)
-          {
-            contador_moneda++;
-          }
-          datoAnterior_moneda = dato_moneda;
-          DEFAULT_tipo_temperatura++;
-          DEFAULT_tipo_temperatura = tipo_temperatura.pulses(DEFAULT_tipo_temperatura); // limita los estados que puede haber en el switch
-          menu_temp.cases(DEFAULT_tipo_temperatura, 2);
-          seleccion_ciclo(DEFAULT_tipo_ciclo);
-          seleccion_temperatura(DEFAULT_tipo_temperatura);
-          seleccion_agua(DEFAULT_nivel_agua);
-          led.temperatura_LED();
-          parametros();
-
-          if (DEFAULT_tipo_ciclo == 1)
-          {
-            // precio_ciclo = EEPROM.read(500);
-            precio_ciclo = ciclo_1;
-          }
-          if (DEFAULT_tipo_ciclo == 2)
-          {
-            // precio_ciclo = EEPROM.read(501);
-            precio_ciclo = ciclo_2;
-          }
-          if (DEFAULT_tipo_ciclo == 3)
-          {
-            //  precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_3;
-          }
-          if (DEFAULT_tipo_ciclo == 4)
-          {
-            //  precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_4;
-          }
-          if (DEFAULT_tipo_temperatura == 1)
-          {
-            precio_temp = 0;
-          }
-          if (DEFAULT_tipo_temperatura == 2)
-          {
-            // precio_temp = EEPROM.read(503);
-            precio_temp = precio_tibia;
-          }
-          if (DEFAULT_tipo_temperatura == 3)
-          {
-            // precio_temp = EEPROM.read(504);
-            precio_temp = precio_caliente;
-          }
-          if (DEFAULT_nivel_agua == 1)
-          {
-            precio_nivel = 0;
-          }
-
-          if (DEFAULT_nivel_agua == 2)
-          {
-            precio_nivel = nivel_2;
-          }
-          if (DEFAULT_nivel_agua == 3)
-          {
-            precio_nivel = nivel_3;
-          }
-          ddisplay.clear();
-          display.setBrightness(0x0f);
-          display.showNumberDec(((precio_temp + precio_ciclo + precio_nivel) * valor_moneda) - (contador_moneda * valor_moneda), true, 3, 1);
-        }
-
-        if (nivel_agua.isPressed()) // evaluo si el boton fue presionado
-        {
-          dato_moneda = digitalRead(moneda_);
-          // revisar
-          if (dato_moneda == HIGH && datoAnterior_moneda == LOW)
-          {
-            contador_moneda++;
-          }
-          datoAnterior_moneda = dato_moneda;
-
-          DEFAULT_nivel_agua++;
-          DEFAULT_nivel_agua = nivel_agua.pulses(DEFAULT_nivel_agua); // limita los estados que puede haber en el switch
-          menu_agua.cases(DEFAULT_nivel_agua, 3);
-          seleccion_ciclo(DEFAULT_tipo_ciclo);
-          seleccion_temperatura(DEFAULT_tipo_temperatura);
-          seleccion_agua(DEFAULT_nivel_agua);
-          led.agua_LED();
-          parametros();
-
-          if (DEFAULT_tipo_ciclo == 1)
-          {
-            // precio_ciclo = EEPROM.read(500);
-            precio_ciclo = ciclo_1;
-          }
-          if (DEFAULT_tipo_ciclo == 2)
-          {
-            // precio_ciclo = EEPROM.read(501);
-            precio_ciclo = ciclo_2;
-          }
-          if (DEFAULT_tipo_ciclo == 3)
-          {
-            // precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_3;
-          }
-          if (DEFAULT_tipo_ciclo == 4)
-          {
-            // precio_ciclo = EEPROM.read(502);
-            precio_ciclo = ciclo_4;
-          }
-          if (DEFAULT_tipo_temperatura == 1)
-          {
-            precio_temp = 0;
-          }
-          if (DEFAULT_tipo_temperatura == 2)
-          {
-            // precio_temp = EEPROM.read(503);
-            precio_temp = precio_tibia;
-          }
-          if (DEFAULT_tipo_temperatura == 3)
-          {
-            // precio_temp = EEPROM.read(504);
-            precio_temp = precio_caliente;
-          }
-          if (DEFAULT_nivel_agua == 1)
-          {
-            precio_nivel = 0;
-          }
-
-          if (DEFAULT_nivel_agua == 2)
-          {
-            precio_nivel = nivel_2;
-          }
-          if (DEFAULT_nivel_agua == 3)
-          {
-            precio_nivel = nivel_3;
-          }
-          ddisplay.clear();
-          display.setBrightness(0x0f);
-          display.showNumberDec(((precio_temp + precio_ciclo + precio_nivel) * valor_moneda) - (contador_moneda * valor_moneda), true, 3, 1);
-        }
-        dato_moneda = digitalRead(moneda_);
-        // revisar
-        if (dato_moneda == HIGH && datoAnterior_moneda == LOW)
-        {
-          lastDebounceTime = millis();
-          debounceDelay = 300000;
-          contador_moneda++;
-          tone(buzzer, 1000);
-          delay(100);
-          noTone(buzzer);
-          ddisplay.clear();
-          display.setBrightness(0x0f);
-          display.showNumberDec(((precio_temp + precio_ciclo + precio_nivel) * valor_moneda) - (contador_moneda * valor_moneda), true, 3, 1);
-          if (((precio_temp + precio_ciclo + precio_nivel) * valor_moneda) <= contador_moneda * valor_moneda)
-          {
-            contador_moneda = 0;
-            activacion = 10;
-            break;
-          }
-        }
-        datoAnterior_moneda = dato_moneda;
-      }
 #endif
 
       // ===================== INICIO SECUENCIA (drop‑in) =====================
@@ -3163,9 +2635,7 @@ void loop()
                     etapa = LAV; // o 1/2 según tu preferencia actual; dejé igual que tu caso
                     while (1)
                     {
-                      
                     }
-                    
                   }
                 }
                 datoAnteriorP = datoP;
@@ -3187,18 +2657,6 @@ void loop()
       }
     }
 
-    break;
-  case 2:
-    wdt_reset();
-
-    break;
-
-  case 3:
-    wdt_reset();
-    break;
-
-  case 4:
-    wdt_reset();
     break;
   }
 }

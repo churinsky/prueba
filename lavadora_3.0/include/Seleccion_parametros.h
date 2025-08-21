@@ -49,11 +49,11 @@ void paramreos_eeprom()
     EEPROM.update(102, 1); // nnivel de agua_bajo 166 mediana chica 164
     EEPROM.update(103, 163); // nivel de agua_alto 166 mediana chica 164
                              ////////////////////////////////////////////ciclo 1
-    EEPROM.update(400, 1);   // 
-    EEPROM.update(401, 1);   // 0
-    EEPROM.update(402, 1);   //
+    EEPROM.update(400, 0);   // 
+    EEPROM.update(401, 0);   // 0
+    EEPROM.update(402, 0);   //
 
-    EEPROM.update(104, 1); // 8
+    EEPROM.update(104, 13); // 8
     EEPROM.update(105, 1);  // 1
     EEPROM.update(106, 0);  //2
 
@@ -88,9 +88,9 @@ void paramreos_eeprom()
     EEPROM.update(124, 0);
     EEPROM.update(125, 0);
 
-    EEPROM.update(126, 0);
-    EEPROM.update(127, 0);
-    EEPROM.update(128, 0);
+    EEPROM.update(126, 6);
+    EEPROM.update(127, 1);
+    EEPROM.update(128, 2);
 
     EEPROM.update(129, 0);
     EEPROM.update(130, 0);
@@ -115,13 +115,13 @@ void paramreos_eeprom()
     EEPROM.update(407, 0); // 1
     EEPROM.update(408, 0); //
 
-    EEPROM.update(142, 0);
-    EEPROM.update(143, 0);
-    EEPROM.update(144, 0);
+    EEPROM.update(142, 4);
+    EEPROM.update(143, 1);
+    EEPROM.update(144, 2);
 
-    EEPROM.update(145, 0);
-    EEPROM.update(146, 0);
-    EEPROM.update(147, 0);
+    EEPROM.update(145, 4);
+    EEPROM.update(146, 1);
+    EEPROM.update(147, 2);
 
     EEPROM.update(148, 0);
     EEPROM.update(149, 0);
